@@ -59,6 +59,15 @@ async function run() {
       res.send(result);
     });
 
+    //Get the specific booked data information
+
+    app.get('/specificBookedFlight/:id', async(req,res)=>{
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id )};
+      const result = await paymentCollection.findOne(filter);
+      res.send(result);
+    })
+
     //Saved Signed in user
 
     app.post("/users", async (req, res) => {
@@ -125,6 +134,7 @@ async function run() {
       const flight = req.body;
       const {
         id,
+        Flight_Name,
         Airline,
         image,
         From,
@@ -135,10 +145,12 @@ async function run() {
         Total_Stops,
         Fare,
       } = flight;
+      console.log("Flight Details", flight);
       const filter = { _id: new ObjectId(id) };
       const options = { upsert: true };
       const updateDoc = {
         $set: {
+          Flight_Name: Flight_Name,
           Airline: Airline,
           image: image,
           From: From,
