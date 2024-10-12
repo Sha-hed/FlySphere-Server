@@ -24,6 +24,7 @@ async function run() {
     const flightCollection = client.db("GoZayaan").collection("flights");
     const userCollection = client.db("GoZayaan").collection("users");
     const paymentCollection = client.db("GoZayaan").collection("payment");
+    const newsletterCollection = client.db("GoZayaan").collection("newsletter");
 
     // Admin Checked Form
 
@@ -61,12 +62,12 @@ async function run() {
 
     //Get the specific booked data information
 
-    app.get('/specificBookedFlight/:id', async(req,res)=>{
+    app.get("/specificBookedFlight/:id", async (req, res) => {
       const id = req.params.id;
-      const filter = { _id: new ObjectId(id )};
+      const filter = { _id: new ObjectId(id) };
       const result = await paymentCollection.findOne(filter);
       res.send(result);
-    })
+    });
 
     //Saved Signed in user
 
@@ -186,6 +187,51 @@ async function run() {
       res.send(result);
     });
 
+    //TotalEarned
+
+    app.get("/totalEarned", async (req, res) => {
+      const result = await paymentCollection
+        .aggregate([
+          {
+            $group: {
+              _id: null, // No grouping by a specific field, just sum all documents
+              totalEarned: { $sum: "$price" }, // Summing the `price` field
+            },
+          },
+          {
+            $project: {
+              _id: 0, // Exclude the `_id` field from the result
+              totalEarned: 1, // Include the totalPrice field
+            },
+          },
+        ])
+        .toArray();
+      res.send(result);
+    });
+
+    //Count Airline Uses
+
+    app.get("/Airline", async (req, res) => {
+      const result = await paymentCollection
+        .aggregate([
+          {
+            $group: {
+              _id: "$flight.Airline", // Group by the airline name
+              count: { $sum: 1 }, // Count the number of bookings for each airline
+            },
+          },
+          {
+            $project: {
+              _id: 0, // Exclude the `_id` field from the result
+              airline: "$_id", // Rename `_id` to `airline`
+              count: 1, // Include the count field
+            },
+          },
+        ])
+        .toArray();
+      res.send(result);
+    });
+
     // Get Payment Details from database
 
     app.get("/payment", async (req, res) => {
@@ -193,7 +239,19 @@ async function run() {
       res.send(result);
     });
 
+    app.post("/newsletter", async (req, res) => {
+      const user = req.body;
+      const result = await newsletterCollection.insertOne(user);
+      res.send(result);
+    });
+
+    app.get("/newsletter", async (req, res) => {
+      const result = await newsletterCollection.find().toArray();
+      res.send(result);
+    });
+
     //Payment Related API
+
     app.post("/create-payment-intent", async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100);
